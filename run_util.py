@@ -20,9 +20,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import copy
+
 from absl import flags
 import gin
 import tqdm
+import numpy as np
 
 
 FLAGS = flags.FLAGS
@@ -49,7 +52,12 @@ def run_simulation(env, agent, metrics, num_steps, seed=100, agent_seed=50):
     A list of measurements if multiple metrics else a single measurement for a
     single metric.
   """
-  agent.seed(agent_seed)
+  num_agents = 5
+  agents = [copy.deepcopy(agent) for _ in range(num_agents)]
+  for i in range(num_agents):
+    agents[i].seed(agent_seed+i)
+
+  #agent.seed(agent_seed)
   env.seed(seed)
   observation = env.reset()
   done = False
@@ -57,11 +65,15 @@ def run_simulation(env, agent, metrics, num_steps, seed=100, agent_seed=50):
   print("Starting simulation")
   simulation_iterator = tqdm.trange if FLAGS.use_tqdm else range
 
+
   for _ in simulation_iterator(num_steps):
+
+    agent_no = np.random.choice(num_agents)
+
     # Update the agent with any changes to the observation or action space.
-    agent.action_space, agent.observation_space = (env.action_space,
+    agents[agent_no].action_space, agents[agent_no].observation_space = (env.action_space,
                                                    env.observation_space)
-    action = agent.act(observation, done)
+    action = agents[agent_no].act(observation, done)
     # TODO(): Remove reward from this loop.
     observation, _, done, _ = env.step(action)
     if done:
